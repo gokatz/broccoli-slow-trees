@@ -1,4 +1,5 @@
 var calculateSummary = require('./calculate-summary');
+var fs = require('fs');
 
 function ellipsize(string, desiredLength) {
   if (string.length > desiredLength) {
@@ -14,6 +15,7 @@ module.exports = function printSlowNodes(tree, factor) {
     var pcThreshold = factor || 0.05;
     var msThreshold = pcThreshold * summary.totalTime;
     var cumulativeLogLines = [];
+    var logString = '';
 
     var MAX_NAME_CELL_LENGTH = 45;
     var MAX_VALUE_CELL_LENGTH = 20;
@@ -29,6 +31,8 @@ module.exports = function printSlowNodes(tree, factor) {
         } else {
           averageStr = '';
         }
+        
+        logString = logString + group.name + ',' + group.totalSelfTime + ',' + group.averageSelfTime + ',' + group.count + ',' + summary.totalTime + '\n';
 
         var countStr = ' (' + group.count + ')'
         var nameStr = ellipsize(group.name, MAX_NAME_CELL_LENGTH - countStr.length)
@@ -40,6 +44,12 @@ module.exports = function printSlowNodes(tree, factor) {
     cumulativeLogLines.unshift(pad('', MAX_NAME_CELL_LENGTH, '-') + '-+-' + pad('', MAX_VALUE_CELL_LENGTH, '-'))
     cumulativeLogLines.unshift(pad('Slowest Nodes (totalTime => ' + (pcThreshold * 100) +'% )', MAX_NAME_CELL_LENGTH) + ' | ' + pad('Total (avg)', MAX_VALUE_CELL_LENGTH))
 
+    fs.readFile('cli-log-timing.csv', 'utf8', function (err, prevData) {
+      prevData = prevData || "";
+      var finalData = logString;
+      fs.writeFile('cli-log-timing.csv', prevData+finalData);
+    });
+    
     console.log('\n' + cumulativeLogLines.join('\n') + '\n')
   } catch (e) {
     console.error('Error when printing slow nodes:', e);
